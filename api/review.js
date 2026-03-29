@@ -4,7 +4,6 @@ const { token, tech, customer, google, photo } = req.query;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// Try to fetch review request data from Supabase
 let reviewData = null;
 if (token && token !== "PREVIEW" && SUPABASE_URL) {
   try {
@@ -155,36 +154,36 @@ textarea::placeholder { color:rgba(255,255,255,0.25); }
 <body>
 <div class="container">
 <div class="logo-section">
-  <div class="logo-icon">⚡</div>
+  <div class="logo-icon">&#9889;</div>
   <div class="logo-title">Shield Low Voltage</div>
   <div class="logo-sub">Customer Review</div>
 </div>
 
-${alreadyReviewed ? \`
+${alreadyReviewed ? `
 <div class="card already-reviewed">
-  <div class="already-icon">✅</div>
+  <div class="already-icon">&#9989;</div>
   <div class="success-title">Already Reviewed</div>
   <div class="success-sub">Thank you! Your review has already been submitted.</div>
 </div>
-\` : \`
+` : `
 <div id="reviewForm">
   <div class="card tech-section">
     ${techPhoto
-      ? \`<img src="\${techPhoto}" class="tech-photo" alt="\${techName}">\`
-      : \`<div class="tech-placeholder">👤</div>\`}
+      ? `<img src="${techPhoto}" class="tech-photo" alt="${techName}">`
+      : `<div class="tech-placeholder">&#128100;</div>`}
     <div class="tech-label">Your Technician</div>
-    <div class="tech-name">\${techName}</div>
-    <div class="greeting">Thank you for your business, \${firstName}!</div>
+    <div class="tech-name">${techName}</div>
+    <div class="greeting">Thank you for your business, ${firstName}!</div>
   </div>
 
   <div class="card">
     <div class="section-title" style="text-align:center;">How was your experience?</div>
     <div class="stars" id="stars">
-      <span class="star" data-v="1">★</span>
-      <span class="star" data-v="2">★</span>
-      <span class="star" data-v="3">★</span>
-      <span class="star" data-v="4">★</span>
-      <span class="star" data-v="5">★</span>
+      <span class="star" data-v="1">&#9733;</span>
+      <span class="star" data-v="2">&#9733;</span>
+      <span class="star" data-v="3">&#9733;</span>
+      <span class="star" data-v="4">&#9733;</span>
+      <span class="star" data-v="5">&#9733;</span>
     </div>
     <div class="rating-label" id="ratingLabel"></div>
   </div>
@@ -196,8 +195,8 @@ ${alreadyReviewed ? \`
 
   <div class="card tip-section">
     <div class="tip-header">
-      <span class="tip-heart">❤️</span>
-      <span class="section-title" style="margin:0;">Leave a tip for \${techFirst}?</span>
+      <span class="tip-heart">&#10084;&#65039;</span>
+      <span class="section-title" style="margin:0;">Leave a tip for ${techFirst}?</span>
     </div>
     <div class="tip-info">
       We give our technicians a <strong>$5 bonus</strong> for every 5-star review.<br>
@@ -213,10 +212,10 @@ ${alreadyReviewed ? \`
     <div class="tip-note" id="tipNote" style="display:none;">100% of tips go directly to your technician. Tip will be added to your final invoice.</div>
   </div>
 
-  ${googleUrl ? \`
+  ${googleUrl ? `
   <div class="card">
-    <a href="\${googleUrl}" target="_blank" class="google-btn" id="googleBtn">
-      ⭐ Leave a Google Review
+    <a href="${googleUrl}" target="_blank" class="google-btn" id="googleBtn">
+      &#11088; Leave a Google Review
     </a>
     <div class="google-note">Help us grow by leaving a review on Google</div>
     <label class="checkbox-row" id="googleCheckRow" style="display:none;">
@@ -224,27 +223,27 @@ ${alreadyReviewed ? \`
       I left a Google review
     </label>
   </div>
-  \` : ""}
+  ` : ""}
 
   <button class="submit-btn" id="submitBtn" disabled>
-    ✓ Submit Review
+    &#10003; Submit Review
   </button>
   <div class="error-msg" id="errorMsg" style="display:none;"></div>
 </div>
 
 <div id="successView" style="display:none;">
   <div class="card success-card">
-    <div class="success-icon">🎉</div>
+    <div class="success-icon">&#127881;</div>
     <div class="success-title">Thank You!</div>
     <div class="success-sub">Your review has been submitted. We truly appreciate your feedback!</div>
   </div>
-  ${googleUrl ? \`
-  <a href="\${googleUrl}" target="_blank" class="google-btn" style="margin-top:16px;">
-    ⭐ Leave a Google Review Too
+  ${googleUrl ? `
+  <a href="${googleUrl}" target="_blank" class="google-btn" style="margin-top:16px;">
+    &#11088; Leave a Google Review Too
   </a>
-  \` : ""}
+  ` : ""}
 </div>
-\`}
+`}
 </div>
 
 <script>
