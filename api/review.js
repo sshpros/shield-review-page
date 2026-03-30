@@ -29,6 +29,7 @@ const logoUrl = SUPABASE_URL
 const submitEndpoint = SUPABASE_URL
   ? `${SUPABASE_URL}/functions/v1/submit-review`
   : "";
+const anonKey = SUPABASE_ANON_KEY || "";
 
 const logoHtml = logoUrl
   ? `<img src="${logoUrl}" class="logo-img" alt="Shield Low Voltage">`
@@ -256,6 +257,7 @@ var rating = 0, tipAmount = 0;
 var labels = {1:"We apologize for the experience",2:"We are sorry -- we will do better",3:"Good, thanks for letting us know",4:"Great experience!",5:"Excellent! Thank you!"};
 var token = "${token || ""}";
 var endpoint = "${submitEndpoint}";
+var anonKey = "${anonKey}";
 var googleUrl = "${googleUrl}";
 var stars = document.querySelectorAll(".star");
 var ratingLabel = document.getElementById("ratingLabel");
@@ -266,94 +268,110 @@ var tipNote = document.getElementById("tipNote");
 if (stars.length === 0) return;
 
 stars.forEach(function(s) { s.addEventListener("click", function() {
-  rating = parseInt(s.dataset.v);
-  stars.forEach(function(x) { x.classList.toggle("active", parseInt(x.dataset.v) <= rating); });
-  if (ratingLabel) {
-    ratingLabel.textContent = labels[rating] || "";
-    ratingLabel.className = "rating-label" + (rating >= 4 ? " positive" : "");
-  }
-  if (submitBtn) submitBtn.disabled = false;
+rating = parseInt(s.dataset.v);
+stars.forEach(function(x) { x.classList.toggle("active", parseInt(x.dataset.v) <= rating); });
+if (ratingLabel) {
+  ratingLabel.textContent = labels[rating] || "";
+  ratingLabel.className = "rating-label" + (rating >= 4 ? " positive" : "");
+}
+if (submitBtn) submitBtn.disabled = false;
 }); });
 
 tipBtns.forEach(function(btn) { btn.addEventListener("click", function() {
-  var val = btn.dataset.amount;
-  tipBtns.forEach(function(b) { b.classList.remove("active"); });
-  if (val === "custom") {
-    btn.classList.add("active");
-    if (customTipInput) customTipInput.classList.add("visible");
-    tipAmount = parseFloat(customTipInput ? customTipInput.value : 0) || 0;
-  } else {
-    btn.classList.add("active");
-    if (customTipInput) customTipInput.classList.remove("visible");
-    tipAmount = parseFloat(val);
-  }
-  if (tipNote) tipNote.style.display = (tipAmount > 0 || val === "custom") ? "block" : "none";
+var val = btn.dataset.amount;
+tipBtns.forEach(function(b) { b.classList.remove("active"); });
+if (val === "custom") {
+  btn.classList.add("active");
+  if (customTipInput) customTipInput.classList.add("visible");
+  tipAmount = parseFloat(customTipInput ? customTipInput.value : 0) || 0;
+} else {
+  btn.classList.add("active");
+  if (customTipInput) customTipInput.classList.remove("visible");
+  tipAmount = parseFloat(val);
+}
+if (tipNote) tipNote.style.display = (tipAmount > 0 || val === "custom") ? "block" : "none";
 }); });
 
 if (customTipInput) customTipInput.addEventListener("input", function() {
-  tipAmount = parseFloat(customTipInput.value) || 0;
-  if (tipNote) tipNote.style.display = tipAmount > 0 ? "block" : "none";
+tipAmount = parseFloat(customTipInput.value) || 0;
+if (tipNote) tipNote.style.display = tipAmount > 0 ? "block" : "none";
 });
 
 if (submitBtn) submitBtn.addEventListener("click", async function() {
-  if (!rating || !token || !endpoint) return;
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting...";
-  var errorMsg = document.getElementById("errorMsg");
-  var feedbackText = document.getElementById("feedback") ? document.getElementById("feedback").value : "";
-  try {
-    var resp = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: token,
-        rating: rating,
-        feedback: feedbackText,
-        tip_amount: tipAmount,
-        google_review_confirmed: false
-      })
-    });
-    var data = await resp.json();
-    if (data.success) {
-      document.getElementById("reviewForm").style.display = "none";
-      var sv = document.getElementById("successView");
-      var h = "";
-      if (rating >= 4 && googleUrl) {
-        h += '<div class="card success-card">';
-        h += '<div class="success-icon">&#127881;</div>';
-        h += '<div class="success-title">Thank You!</div>';
-        h += '<div class="success-sub">We are so glad you had a great experience! Would you mind sharing your review on Google too? It really helps us grow.</div>';
-        h += '<div class="divider"></div>';
-        h += '<div class="step-row"><span class="step-number">1</span> Copy your review</div>';
-        if (feedbackText) {
-          h += '<div class="copy-box" id="reviewText">' + feedbackText.replace(/</g,"&lt;").replace(/>/g,"&gt;") + '</div>';
-          h += '<button class="copy-btn" id="copyBtn" onclick="copyReview()">&#128203; Copy to Clipboard</button>';
-        } else {
-          h += '<div style="font-size:13px;color:rgba(255,255,255,0.4);margin:8px 0 16px;">No written review to copy -- just leave your star rating on Google!</div>';
-        }
-        h += '<div class="step-row"><span class="step-number">2</span> Paste it on Google</div>';
-        h += '<a href="' + googleUrl + '" target="_blank" class="google-btn">&#11088; Open Google Reviews</a>';
-        h += '<div class="google-helper">The Google review page will open in a new tab.<br>Just paste your review and select your star rating!</div>';
-        h += '</div>';
+var errorMsg = document.getElementById("errorMsg");
+if (!rating) {
+  if (errorMsg) { errorMsg.textContent = "Please select a star rating"; errorMsg.style.display = "block"; }
+  return;
+}
+if (!token) {
+  if (errorMsg) { errorMsg.textContent = "Missing review token"; errorMsg.style.display = "block"; }
+  return;
+}
+if (!endpoint) {
+  if (errorMsg) { errorMsg.textContent = "Configuration error — missing endpoint"; errorMsg.style.display = "block"; }
+  return;
+}
+submitBtn.disabled = true;
+submitBtn.textContent = "Submitting...";
+if (errorMsg) errorMsg.style.display = "none";
+var feedbackText = document.getElementById("feedback") ? document.getElementById("feedback").value : "";
+try {
+  var headers = { "Content-Type": "application/json" };
+  if (anonKey) {
+    headers["Authorization"] = "Bearer " + anonKey;
+  }
+  var resp = await fetch(endpoint, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({
+      token: token,
+      rating: rating,
+      feedback: feedbackText,
+      tip_amount: tipAmount,
+      google_review_confirmed: false
+    })
+  });
+  var data = await resp.json();
+  if (data.success) {
+    document.getElementById("reviewForm").style.display = "none";
+    var sv = document.getElementById("successView");
+    var h = "";
+    if (rating >= 4 && googleUrl) {
+      h += '<div class="card success-card">';
+      h += '<div class="success-icon">&#127881;</div>';
+      h += '<div class="success-title">Thank You!</div>';
+      h += '<div class="success-sub">We are so glad you had a great experience! Would you mind sharing your review on Google too? It really helps us grow.</div>';
+      h += '<div class="divider"></div>';
+      h += '<div class="step-row"><span class="step-number">1</span> Copy your review</div>';
+      if (feedbackText) {
+        h += '<div class="copy-box" id="reviewText">' + feedbackText.replace(/</g,"&lt;").replace(/>/g,"&gt;") + '</div>';
+        h += '<button class="copy-btn" id="copyBtn" onclick="copyReview()">&#128203; Copy to Clipboard</button>';
       } else {
-        h += '<div class="card success-card">';
-        h += '<div class="success-icon">&#127881;</div>';
-        h += '<div class="success-title">Thank You!</div>';
-        h += '<div class="success-sub">Your review has been submitted. We truly appreciate your feedback!</div>';
-        h += '</div>';
+        h += '<div style="font-size:13px;color:rgba(255,255,255,0.4);margin:8px 0 16px;">No written review to copy -- just leave your star rating on Google!</div>';
       }
-      sv.innerHTML = h;
-      sv.style.display = "block";
+      h += '<div class="step-row"><span class="step-number">2</span> Paste it on Google</div>';
+      h += '<a href="' + googleUrl + '" target="_blank" class="google-btn">&#11088; Open Google Reviews</a>';
+      h += '<div class="google-helper">The Google review page will open in a new tab.<br>Just paste your review and select your star rating!</div>';
+      h += '</div>';
     } else {
-      if (errorMsg) { errorMsg.textContent = data.error || "Something went wrong"; errorMsg.style.display = "block"; }
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Review";
+      h += '<div class="card success-card">';
+      h += '<div class="success-icon">&#127881;</div>';
+      h += '<div class="success-title">Thank You!</div>';
+      h += '<div class="success-sub">Your review has been submitted. We truly appreciate your feedback!</div>';
+      h += '</div>';
     }
-  } catch (e) {
-    if (errorMsg) { errorMsg.textContent = "Network error. Please try again."; errorMsg.style.display = "block"; }
+    sv.innerHTML = h;
+    sv.style.display = "block";
+  } else {
+    if (errorMsg) { errorMsg.textContent = data.error || "Something went wrong"; errorMsg.style.display = "block"; }
     submitBtn.disabled = false;
     submitBtn.textContent = "Submit Review";
   }
+} catch (e) {
+  if (errorMsg) { errorMsg.textContent = "Network error. Please try again."; errorMsg.style.display = "block"; }
+  submitBtn.disabled = false;
+  submitBtn.textContent = "Submit Review";
+}
 });
 })();
 
@@ -363,21 +381,21 @@ var btn = document.getElementById("copyBtn");
 if (!el) return;
 var text = el.innerText;
 if (navigator.clipboard) {
-  navigator.clipboard.writeText(text).then(function() {
-    btn.innerHTML = "&#9989; Copied!";
-    btn.classList.add("copied");
-    setTimeout(function() { btn.innerHTML = "&#128203; Copy to Clipboard"; btn.classList.remove("copied"); }, 3000);
-  });
-} else {
-  var range = document.createRange();
-  range.selectNode(el);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(range);
-  document.execCommand("copy");
-  window.getSelection().removeAllRanges();
+navigator.clipboard.writeText(text).then(function() {
   btn.innerHTML = "&#9989; Copied!";
   btn.classList.add("copied");
   setTimeout(function() { btn.innerHTML = "&#128203; Copy to Clipboard"; btn.classList.remove("copied"); }, 3000);
+});
+} else {
+var range = document.createRange();
+range.selectNode(el);
+window.getSelection().removeAllRanges();
+window.getSelection().addRange(range);
+document.execCommand("copy");
+window.getSelection().removeAllRanges();
+btn.innerHTML = "&#9989; Copied!";
+btn.classList.add("copied");
+setTimeout(function() { btn.innerHTML = "&#128203; Copy to Clipboard"; btn.classList.remove("copied"); }, 3000);
 }
 }
 </script>
