@@ -19,7 +19,7 @@ const techName = reviewData?.technician_name || tech || "Your Technician";
 const customerName = reviewData?.customer_name || customer || "Valued Customer";
 const googleUrl = reviewData?.google_review_url || google || "";
 const alreadyReviewed = reviewData?.review_completed || false;
-const techPhoto = photo || "";
+const techPhoto = reviewData?.tech_photo_url || photo || "";
 const firstName = customerName.split(" ")[0];
 const techFirst = techName.split(" ")[0];
 
