@@ -24,7 +24,7 @@ const firstName = customerName.split(" ")[0];
 const techFirst = techName.split(" ")[0];
 
 const logoUrl = SUPABASE_URL
-  ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo.jpg`
+  ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png`
   : "";
 const submitEndpoint = SUPABASE_URL
   ? `${SUPABASE_URL}/functions/v1/submit-review`
@@ -119,8 +119,8 @@ color:#fff; min-height:100vh; padding:24px 16px 48px;
 .container { max-width:480px; margin:0 auto; }
 .logo-section { text-align:center; margin-bottom:28px; }
 .logo-img {
-width:80px; height:80px; border-radius:16px; object-fit:contain;
-margin-bottom:12px; box-shadow:0 8px 24px rgba(59,130,246,0.3);
+width:110px; height:110px; object-fit:contain;
+margin-bottom:10px; filter:drop-shadow(0 8px 24px rgba(59,130,246,0.35));
 }
 .logo-title { font-size:20px; font-weight:700; letter-spacing:-0.3px; }
 .logo-sub { font-size:13px; color:#6b7280; margin-top:4px; }
