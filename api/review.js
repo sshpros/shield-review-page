@@ -24,7 +24,7 @@ const firstName = customerName.split(" ")[0];
 const techFirst = techName.split(" ")[0];
 
 const logoUrl = SUPABASE_URL
-  ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png`
+  ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png?v=6`
   : "";
 const submitEndpoint = SUPABASE_URL
   ? `${SUPABASE_URL}/functions/v1/submit-review`
