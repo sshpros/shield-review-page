@@ -28,6 +28,10 @@ export default async function handler(req, res) {
   const customerName = reviewData?.customer_name || customer || "Valued Customer";
   const googleUrl = reviewData?.google_review_url || google || "";
   const alreadyReviewed = reviewData?.review_completed || false;
+  const priorTip = Number(reviewData?.tip_amount || 0);
+  const priorRating = Number(reviewData?.review_rating || 0);
+  const priorFeedback = reviewData?.review_feedback || "";
+  const googleDone = reviewData?.google_review_confirmed || false;
   const techPhoto = reviewData?.tech_photo_url || photo || "";
   const firstName = customerName.split(" ")[0];
   const techFirst = techName.split(" ")[0];
@@ -157,10 +161,39 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   <div class="logo-section">${logoUrl ? `<img src="${logoUrl}" class="logo-img" alt="Shield Low Voltage">` : ""}</div>
 
   ${alreadyReviewed ? `
-  <div class="card center">
-    <div class="success-icon">&#9989;</div>
-    <div class="success-title">Already Reviewed</div>
-    <div class="success-sub">Thank you! Your review has already been submitted.</div>
+  <!-- REVISIT: review done. Offer what's still open — the tip, and (for
+       4-5 stars) the Google finish if they never got there. Once the tip
+       is in too, it's a plain thank-you (Kyle, 2026-09-14). -->
+  <div class="step active" id="step4">
+    <div class="card center">
+      <div class="success-icon">&#127881;</div>
+      <div class="success-title">Thanks for your review, ${firstName}!</div>
+      <div class="success-sub" id="thanksSub">${priorTip > 0
+        ? `And for the $${priorTip.toFixed(0)} tip — ${techFirst} got every penny. You're all set!`
+        : `Your review means a lot to our small team.`}</div>
+      ${priorRating >= 4 && googleUrl && !googleDone ? `
+      <a class="google-btn" id="revisitGoogleBtn" style="margin-top:18px;">Post it on Google too &mdash; we'll copy your review</a>
+      <div class="helper">Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.</div>` : ``}
+    </div>
+    ${priorTip > 0 ? `` : `
+    <div class="card" id="tipCard">
+      <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst}?</div>
+      <div class="greeting" style="text-align:center; margin-top:0;">Tips are extra &mdash; 100% goes to your technician.</div>
+      <div class="tip-grid" id="tipGrid">
+        <div class="tip-btn" data-amount="10">$10</div>
+        <div class="tip-btn" data-amount="20">$20<small>Match our bonus</small></div>
+        <div class="tip-btn" data-amount="custom">Custom</div>
+      </div>
+      <input type="number" id="customTip" class="custom-tip-input" placeholder="$ Enter amount" min="1" step="1">
+      <button class="primary-btn" id="sendTip" disabled>Add Tip</button>
+      <div class="helper">Tip will be added to your final invoice.</div>
+      <button class="ghost-btn" id="skipTip">No tip today</button>
+    </div>`}
+    <div class="card center" id="allDone" style="display:none;">
+      <div class="success-icon">&#129309;</div>
+      <div class="success-title" id="doneTitle">All set!</div>
+      <div class="success-sub" id="doneSub"></div>
+    </div>
   </div>` : `
 
   <!-- STEP 1: stars, nothing else -->
@@ -249,6 +282,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   var endpoint = ${JSON.stringify(submitEndpoint)};
   var anonKey = ${JSON.stringify(anonKey)};
   var googleUrl = ${JSON.stringify(googleUrl)};
+  var priorFeedback = ${JSON.stringify(priorFeedback)};
   var rating = 0;
   var submitted = false;
 
@@ -362,6 +396,20 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       ? "Your Google review earns " + ${JSON.stringify(techFirst)} + " a $20 bonus from us. Thank you!"
       : "Your review means a lot to our small team.";
   }
+
+  // REVISIT — Google still open: copy their saved review text and go.
+  var revisitGoogle = document.getElementById("revisitGoogleBtn");
+  if (revisitGoogle) revisitGoogle.addEventListener("click", function() {
+    if (priorFeedback && navigator.clipboard) {
+      navigator.clipboard.writeText(priorFeedback).catch(function() {});
+      var f = document.getElementById("copiedFlash");
+      f.classList.add("show");
+      setTimeout(function() { f.classList.remove("show"); }, 2200);
+    }
+    if (token) api({ token: token, google_clicked: true }).catch(function() {});
+    revisitGoogle.style.display = "none";
+    setTimeout(function() { window.open(googleUrl, "_blank"); }, 350);
+  });
 
   // STEP 4 — tip
   var tipAmount = 0;
