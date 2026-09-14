@@ -1,109 +1,50 @@
+// Review landing page — stepped flow, Google as the finish line.
+//
+// Redesigned 2026-09-14. The previous page converted internally (9/28
+// submitted, all 4-5 stars, 6 tipped) but only 1 review reached Google:
+// the ask came after a success screen, behind a copy/paste second job,
+// with the tip closing the transaction first. This flow makes the
+// customer write ONCE, fires the internal submit silently, auto-copies
+// their text, and lands them in Google's review box in one tap. The tip
+// moved to the thank-you screen, after the Google step.
 export default async function handler(req, res) {
-const { token, tech, customer, google, photo } = req.query;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  const { token, tech, customer, google, photo } = req.query;
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-let reviewData = null;
-if (token && token !== "PREVIEW" && SUPABASE_URL) {
-  try {
-    const resp = await fetch(
-      `${SUPABASE_URL}/functions/v1/get-review-request?token=${token}`,
-      { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
-    );
-    const json = await resp.json();
-    if (json.success) reviewData = json.data;
-  } catch (e) {}
-}
+  let reviewData = null;
+  if (token && token !== "PREVIEW" && SUPABASE_URL) {
+    try {
+      const resp = await fetch(
+        `${SUPABASE_URL}/functions/v1/get-review-request?token=${token}`,
+        { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      const json = await resp.json();
+      if (json.success) reviewData = json.data;
+    } catch (e) {}
+  }
 
-const techName = reviewData?.technician_name || tech || "Your Technician";
-const customerName = reviewData?.customer_name || customer || "Valued Customer";
-const googleUrl = reviewData?.google_review_url || google || "";
-const alreadyReviewed = reviewData?.review_completed || false;
-const techPhoto = reviewData?.tech_photo_url || photo || "";
-const firstName = customerName.split(" ")[0];
-const techFirst = techName.split(" ")[0];
+  const techName = reviewData?.technician_name || tech || "Your Technician";
+  const customerName = reviewData?.customer_name || customer || "Valued Customer";
+  const googleUrl = reviewData?.google_review_url || google || "";
+  const alreadyReviewed = reviewData?.review_completed || false;
+  const techPhoto = reviewData?.tech_photo_url || photo || "";
+  const firstName = customerName.split(" ")[0];
+  const techFirst = techName.split(" ")[0];
 
-const logoUrl = SUPABASE_URL
-  ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png?v=7`
-  : "";
-const submitEndpoint = SUPABASE_URL
-  ? `${SUPABASE_URL}/functions/v1/submit-review`
-  : "";
-const anonKey = SUPABASE_ANON_KEY || "";
+  const logoUrl = SUPABASE_URL
+    ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png?v=7`
+    : "";
+  const submitEndpoint = SUPABASE_URL
+    ? `${SUPABASE_URL}/functions/v1/submit-review`
+    : "";
+  const anonKey = SUPABASE_ANON_KEY || "";
 
-const logoHtml = logoUrl
-  ? `<img src="${logoUrl}" class="logo-img" alt="Shield Low Voltage">`
-  : `<div style="width:56px;height:56px;background:linear-gradient(135deg,#1a5fc7,#3b82f6);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:24px;box-shadow:0 8px 24px rgba(59,130,246,0.3);">&#9889;</div>`;
+  const techPhotoHtml = techPhoto
+    ? `<img src="${techPhoto}" class="tech-photo" alt="${techName}">`
+    : `<div class="tech-placeholder">&#128100;</div>`;
 
-const techPhotoHtml = techPhoto
-  ? `<img src="${techPhoto}" class="tech-photo" alt="${techName}">`
-  : `<div class="tech-placeholder">&#128100;</div>`;
-
-let alreadyBlock = "";
-if (alreadyReviewed) {
-  alreadyBlock = `
-  <div class="card already-reviewed">
-    <div class="already-icon">&#9989;</div>
-    <div class="success-title">Already Reviewed</div>
-    <div class="success-sub">Thank you! Your review has already been submitted.</div>
-  </div>`;
-}
-
-let formBlock = "";
-if (!alreadyReviewed) {
-  formBlock = `
-  <div id="reviewForm">
-    <div class="card tech-section">
-      ${techPhotoHtml}
-      <div class="tech-label">Your Technician</div>
-      <div class="tech-name">${techName}</div>
-      <div class="greeting">Thank you for your business, ${firstName}!</div>
-    </div>
-
-    <div class="card">
-      <div class="section-title" style="text-align:center;">How was your experience?</div>
-      <div class="stars" id="stars">
-        <span class="star" data-v="1">&#9733;</span>
-        <span class="star" data-v="2">&#9733;</span>
-        <span class="star" data-v="3">&#9733;</span>
-        <span class="star" data-v="4">&#9733;</span>
-        <span class="star" data-v="5">&#9733;</span>
-      </div>
-      <div class="rating-label" id="ratingLabel"></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">Leave a comment (optional)</div>
-      <textarea id="feedback" placeholder="Tell us about your experience..."></textarea>
-    </div>
-
-    <div class="card tip-section">
-      <div class="tip-header">
-        <span class="tip-heart">&#10084;</span>
-        <span class="section-title" style="margin:0;">Leave a tip for ${techFirst}?</span>
-      </div>
-      <div class="tip-info">
-        We give our technicians a <strong>$5 bonus</strong> for every 5-star review.<br>
-        Would you like to match our bonus -- or tip even more?
-      </div>
-      <div class="tip-grid" id="tipGrid">
-        <div class="tip-btn" data-amount="5">$5<small>Match us</small></div>
-        <div class="tip-btn" data-amount="10">$10</div>
-        <div class="tip-btn" data-amount="20">$20</div>
-        <div class="tip-btn" data-amount="custom">Custom</div>
-      </div>
-      <input type="number" id="customTip" class="custom-tip-input" placeholder="$ Enter amount" min="1" step="1">
-      <div class="tip-note" id="tipNote" style="display:none;">100% of tips go directly to your technician. Tip will be added to your final invoice.</div>
-    </div>
-
-    <button class="submit-btn" id="submitBtn" disabled>Submit Review</button>
-    <div class="error-msg" id="errorMsg" style="display:none;"></div>
-  </div>
-
-  <div id="successView" style="display:none;"></div>`;
-}
-
-const page = `<!DOCTYPE html>
+  const page = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -112,315 +53,375 @@ const page = `<!DOCTYPE html>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
-font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;
-background:linear-gradient(180deg,#0a0e1a 0%,#111827 100%);
-color:#fff; min-height:100vh; padding:24px 16px 48px;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;
+  background:linear-gradient(180deg,#0a0e1a 0%,#111827 100%);
+  color:#fff; min-height:100vh; padding:20px 16px 48px;
 }
-.container { max-width:480px; margin:0 auto; }
-.logo-section { text-align:center; margin-bottom:28px; }
-.logo-img {
-width:110px; height:110px; object-fit:contain;
-margin-bottom:10px; filter:drop-shadow(0 8px 24px rgba(59,130,246,0.35));
-}
-.logo-title { font-size:20px; font-weight:700; letter-spacing:-0.3px; }
-.logo-sub { font-size:13px; color:#6b7280; margin-top:4px; }
+.container { max-width:440px; margin:0 auto; }
+.logo-section { text-align:center; margin-bottom:18px; }
+.logo-img { width:84px; height:84px; object-fit:contain; filter:drop-shadow(0 8px 24px rgba(59,130,246,0.35)); }
 .card {
-background:rgba(22,27,34,0.95); border-radius:20px;
-border:1px solid rgba(255,255,255,0.06); padding:24px;
-margin-bottom:16px; box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  background:rgba(22,27,34,0.95); border-radius:20px;
+  border:1px solid rgba(255,255,255,0.06); padding:24px 20px;
+  margin-bottom:14px; box-shadow:0 12px 40px rgba(0,0,0,0.4);
 }
-.tech-section { text-align:center; }
-.tech-photo {
-width:80px; height:80px; border-radius:50%;
-border:2px solid rgba(59,130,246,0.4); object-fit:cover;
-margin-bottom:12px;
-}
+.center { text-align:center; }
+.tech-photo { width:88px; height:88px; border-radius:50%; border:2px solid rgba(59,130,246,0.4); object-fit:cover; margin-bottom:10px; }
 .tech-placeholder {
-width:80px; height:80px; border-radius:50%;
-background:rgba(59,130,246,0.15); display:inline-flex;
-align-items:center; justify-content:center; margin-bottom:12px;
-font-size:36px; color:rgba(59,130,246,0.5);
+  width:88px; height:88px; border-radius:50%; background:rgba(59,130,246,0.15);
+  display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px;
+  font-size:40px; color:rgba(59,130,246,0.5);
 }
-.tech-label { font-size:12px; color:rgba(255,255,255,0.5); }
-.tech-name { font-size:22px; font-weight:700; margin-top:2px; }
-.greeting { font-size:14px; color:rgba(255,255,255,0.6); margin-top:8px; }
-.section-title { font-size:16px; font-weight:700; margin-bottom:14px; }
-.stars { display:flex; justify-content:center; gap:12px; margin:8px 0; }
+.tech-name { font-size:21px; font-weight:700; }
+.greeting { font-size:15px; color:rgba(255,255,255,0.65); margin-top:6px; line-height:1.45; }
+.ask { font-size:17px; font-weight:700; margin:18px 0 6px; }
+.stars { display:flex; justify-content:center; gap:8px; margin:10px 0 2px; }
 .star {
-font-size:36px; cursor:pointer; color:rgba(255,255,255,0.15);
-transition:all 0.2s ease; user-select:none;
+  font-size:44px; cursor:pointer; color:rgba(255,255,255,0.15);
+  transition:all 0.15s ease; user-select:none; -webkit-tap-highlight-color:transparent;
+  padding:2px 4px;
 }
-.star.active { color:#facc15; transform:scale(1.1); }
-.star:hover { transform:scale(1.15); }
-.rating-label {
-text-align:center; font-size:14px; font-weight:500;
-color:rgba(255,255,255,0.5); margin-top:6px; min-height:20px;
-transition:color 0.2s;
-}
+.star.active { color:#facc15; transform:scale(1.08); }
+.rating-label { font-size:14px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:8px; min-height:20px; }
 .rating-label.positive { color:#22c55e; }
+.section-title { font-size:16px; font-weight:700; margin-bottom:10px; }
 textarea {
-width:100%; padding:14px; background:rgba(255,255,255,0.06);
-border:1px solid rgba(255,255,255,0.08); border-radius:12px;
-color:#fff; font-family:inherit; font-size:14px; resize:vertical;
-min-height:80px; outline:none; transition:border-color 0.2s;
+  width:100%; min-height:110px; background:rgba(10,14,26,0.7);
+  border:1px solid rgba(255,255,255,0.1); border-radius:14px; color:#fff;
+  font-size:16px; padding:14px; resize:vertical; font-family:inherit; line-height:1.5;
 }
-textarea:focus { border-color:rgba(59,130,246,0.5); }
-textarea::placeholder { color:rgba(255,255,255,0.25); }
-.tip-section { text-align:center; }
-.tip-header { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:8px; }
-.tip-heart { color:#ec4899; }
-.tip-info { font-size:12px; color:rgba(255,255,255,0.45); margin-bottom:14px; line-height:1.4; }
-.tip-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.tip-btn {
-padding:14px 0; background:rgba(255,255,255,0.06);
-border:1px solid rgba(255,255,255,0.1); border-radius:12px;
-color:rgba(255,255,255,0.6); font-size:15px; font-weight:600;
-cursor:pointer; transition:all 0.2s; text-align:center;
+textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.chip {
+  font-size:13px; padding:7px 12px; border-radius:999px;
+  background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3);
+  color:#93c5fd; cursor:pointer; user-select:none;
 }
-.tip-btn:hover { background:rgba(255,255,255,0.1); }
-.tip-btn.active {
-background:rgba(59,130,246,0.2); border-color:#3b82f6; color:#fff;
+.chip:active { background:rgba(59,130,246,0.3); }
+.bonus-banner {
+  display:flex; align-items:center; gap:10px; background:rgba(250,204,21,0.08);
+  border:1px solid rgba(250,204,21,0.25); border-radius:14px; padding:12px 14px;
+  font-size:14px; line-height:1.45; margin-top:14px; text-align:left;
 }
-.tip-btn small { display:block; font-size:9px; font-weight:500; color:rgba(255,255,255,0.35); margin-top:2px; }
-.tip-note { font-size:11px; color:rgba(255,255,255,0.3); margin-top:10px; }
-.custom-tip-input {
-display:none; margin-top:12px; padding:12px; background:rgba(255,255,255,0.06);
-border:1px solid rgba(255,255,255,0.08); border-radius:12px;
-color:#fff; font-size:16px; font-weight:600; text-align:center;
-width:100%; outline:none;
+.bonus-banner .b-icon { font-size:22px; }
+.primary-btn {
+  display:block; width:100%; text-align:center; background:linear-gradient(135deg,#1a5fc7,#3b82f6);
+  color:#fff; font-size:17px; font-weight:700; border:none; border-radius:16px;
+  padding:16px; cursor:pointer; margin-top:16px; text-decoration:none;
+  box-shadow:0 8px 24px rgba(59,130,246,0.35);
 }
-.custom-tip-input.visible { display:block; }
-.custom-tip-input:focus { border-color:rgba(59,130,246,0.5); }
-.submit-btn {
-display:flex; align-items:center; justify-content:center; gap:8px;
-width:100%; padding:16px; border:none; border-radius:14px;
-font-size:17px; font-weight:700; cursor:pointer; transition:all 0.2s;
-background:linear-gradient(135deg,#1a5fc7,#3b82f6); color:#fff;
-box-shadow:0 8px 24px rgba(59,130,246,0.3);
-}
-.submit-btn:hover { transform:translateY(-1px); box-shadow:0 12px 32px rgba(59,130,246,0.4); }
-.submit-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
-.success-card { text-align:center; padding:40px 24px; }
-.success-icon { font-size:48px; margin-bottom:16px; }
-.success-title { font-size:22px; font-weight:700; margin-bottom:8px; }
-.success-sub { font-size:14px; color:rgba(255,255,255,0.6); line-height:1.5; }
-.already-reviewed { text-align:center; padding:32px 24px; }
-.already-icon { font-size:40px; margin-bottom:12px; }
-.error-msg { color:#ef4444; font-size:13px; text-align:center; margin-top:8px; }
-.copy-box {
-background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
-border-radius:12px; padding:14px; margin:16px 0 12px; text-align:left;
-font-size:14px; color:rgba(255,255,255,0.8); line-height:1.5;
-max-height:120px; overflow-y:auto; word-wrap:break-word;
-}
-.copy-btn {
-display:inline-flex; align-items:center; gap:6px; padding:10px 20px;
-background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
-border-radius:10px; color:#fff; font-size:14px; font-weight:600;
-cursor:pointer; transition:all 0.2s; margin-bottom:16px;
-}
-.copy-btn:hover { background:rgba(255,255,255,0.15); }
-.copy-btn.copied { background:rgba(34,197,94,0.2); border-color:#22c55e; color:#22c55e; }
+.primary-btn:disabled { opacity:0.45; box-shadow:none; }
 .google-btn {
-display:flex; align-items:center; justify-content:center; gap:8px;
-width:100%; padding:16px; background:linear-gradient(135deg,#ea4335,#fbbc04);
-border:none; border-radius:14px;
-color:#fff; font-size:16px; font-weight:700; cursor:pointer;
-text-decoration:none; transition:all 0.2s;
-box-shadow:0 8px 24px rgba(234,67,53,0.3);
+  display:block; width:100%; text-align:center; background:#fff; color:#1f2937;
+  font-size:17px; font-weight:700; border:none; border-radius:16px;
+  padding:16px; cursor:pointer; margin-top:16px; text-decoration:none;
+  box-shadow:0 8px 24px rgba(255,255,255,0.15);
 }
-.google-btn:hover { transform:translateY(-1px); box-shadow:0 12px 32px rgba(234,67,53,0.4); }
-.google-helper { text-align:center; font-size:12px; color:rgba(255,255,255,0.4); margin-top:10px; line-height:1.4; }
-.divider { height:1px; background:rgba(255,255,255,0.08); margin:20px 0; }
-.step-number {
-display:inline-flex; align-items:center; justify-content:center;
-width:24px; height:24px; border-radius:50%; background:rgba(59,130,246,0.2);
-color:#3b82f6; font-size:13px; font-weight:700; margin-right:8px;
+.ghost-btn {
+  display:block; width:100%; text-align:center; background:none; color:rgba(255,255,255,0.45);
+  font-size:14px; border:none; padding:12px; cursor:pointer; margin-top:6px; text-decoration:underline;
 }
-.step-row { display:flex; align-items:center; font-size:14px; color:rgba(255,255,255,0.7); margin-bottom:10px; }
+.helper { font-size:13px; color:rgba(255,255,255,0.45); text-align:center; margin-top:10px; line-height:1.5; }
+.tip-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.tip-btn {
+  text-align:center; padding:16px 8px; border-radius:14px; cursor:pointer;
+  background:rgba(59,130,246,0.1); border:1.5px solid rgba(59,130,246,0.25);
+  font-size:18px; font-weight:700; user-select:none;
+}
+.tip-btn small { display:block; font-size:11px; font-weight:500; color:rgba(255,255,255,0.5); margin-top:2px; }
+.tip-btn.selected { background:rgba(59,130,246,0.35); border-color:#3b82f6; }
+.custom-tip-input {
+  display:none; width:100%; margin-top:10px; background:rgba(10,14,26,0.7);
+  border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:#fff;
+  font-size:16px; padding:12px 14px;
+}
+.custom-tip-input.show { display:block; }
+.success-icon { font-size:44px; margin-bottom:8px; }
+.success-title { font-size:22px; font-weight:800; }
+.success-sub { font-size:15px; color:rgba(255,255,255,0.65); margin-top:8px; line-height:1.5; }
+.error-msg { color:#f87171; font-size:14px; text-align:center; margin-top:10px; }
+.copied-flash {
+  position:fixed; left:50%; bottom:36px; transform:translateX(-50%);
+  background:#22c55e; color:#052e16; font-weight:700; font-size:14px;
+  padding:10px 18px; border-radius:999px; opacity:0; transition:opacity 0.3s;
+  pointer-events:none; z-index:50;
+}
+.copied-flash.show { opacity:1; }
+.step { display:none; }
+.step.active { display:block; animation:fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 </style>
 </head>
 <body>
 <div class="container">
-<div class="logo-section">
-${logoHtml}
-<div class="logo-title">Shield Low Voltage</div>
-<div class="logo-sub">Customer Review</div>
+  <div class="logo-section">${logoUrl ? `<img src="${logoUrl}" class="logo-img" alt="Shield Low Voltage">` : ""}</div>
+
+  ${alreadyReviewed ? `
+  <div class="card center">
+    <div class="success-icon">&#9989;</div>
+    <div class="success-title">Already Reviewed</div>
+    <div class="success-sub">Thank you! Your review has already been submitted.</div>
+  </div>` : `
+
+  <!-- STEP 1: stars, nothing else -->
+  <div class="step active" id="step1">
+    <div class="card center">
+      ${techPhotoHtml}
+      <div class="tech-name">${techName}</div>
+      <div class="greeting">was just at your home, ${firstName}.</div>
+      <div class="ask">How did we do?</div>
+      <div class="stars" id="stars">
+        <span class="star" data-v="1">&#9733;</span>
+        <span class="star" data-v="2">&#9733;</span>
+        <span class="star" data-v="3">&#9733;</span>
+        <span class="star" data-v="4">&#9733;</span>
+        <span class="star" data-v="5">&#9733;</span>
+      </div>
+      <div class="rating-label" id="ratingLabel">Tap a star to begin</div>
+    </div>
+  </div>
+
+  <!-- STEP 2 (4-5 stars): write once, then Google -->
+  <div class="step" id="step2good">
+    <div class="card">
+      <div class="section-title">Tell us what went well</div>
+      <textarea id="feedbackGood" placeholder="A sentence or two about your experience..."></textarea>
+      <div class="chips" id="chips">
+        <span class="chip">${techFirst} was on time</span>
+        <span class="chip">Clean installation</span>
+        <span class="chip">Explained everything clearly</span>
+        <span class="chip">Would recommend</span>
+      </div>
+      <div class="bonus-banner">
+        <span class="b-icon">&#11088;</span>
+        <span>We pay ${techFirst} a <strong>$20 bonus</strong> for every 5-star review left on Google &mdash; your review goes straight to ${techFirst === "Your" ? "them" : techFirst}.</span>
+      </div>
+      <button class="primary-btn" id="continueGood">Continue</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 (1-3 stars): private path -->
+  <div class="step" id="step2bad">
+    <div class="card">
+      <div class="section-title">We want to make this right</div>
+      <div class="greeting" style="margin-top:0;">Tell us what happened &mdash; this goes directly to the owner, and he'll personally follow up.</div>
+      <textarea id="feedbackBad" placeholder="What could we have done better?" style="margin-top:12px;"></textarea>
+      <button class="primary-btn" id="submitBad">Send to the Owner</button>
+      <div class="error-msg" id="errorBad" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 (4-5 stars): the Google finish line -->
+  <div class="step" id="step3google">
+    <div class="card center">
+      <div class="success-icon">&#11088;</div>
+      <div class="success-title">One tap left</div>
+      <div class="success-sub">Your review is written &mdash; posting it on Google is what really helps us, and it earns ${techFirst} the <strong>$20 bonus</strong>.</div>
+      <a class="google-btn" id="googleBtn">Finish on Google &mdash; your review is copied</a>
+      <div class="helper">Paste, tap your stars, done &mdash; takes 10 seconds.</div>
+      <button class="ghost-btn" id="skipGoogle">No thanks, just submit</button>
+      <div class="error-msg" id="errorGood" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: thank you + tip -->
+  <div class="step" id="step4">
+    <div class="card center">
+      <div class="success-icon">&#127881;</div>
+      <div class="success-title">Thank You, ${firstName}!</div>
+      <div class="success-sub" id="thanksSub">Your review means a lot to our small team.</div>
+    </div>
+    <div class="card" id="tipCard">
+      <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst} on top?</div>
+      <div class="greeting" style="text-align:center; margin-top:0;">We're paying ${techFirst} a $20 bonus for your Google review.<br>Tips are extra &mdash; 100% goes to your technician.</div>
+      <div class="tip-grid" id="tipGrid">
+        <div class="tip-btn" data-amount="10">$10</div>
+        <div class="tip-btn" data-amount="20">$20<small>Match our bonus</small></div>
+        <div class="tip-btn" data-amount="custom">Custom</div>
+      </div>
+      <input type="number" id="customTip" class="custom-tip-input" placeholder="$ Enter amount" min="1" step="1">
+      <button class="primary-btn" id="sendTip" disabled>Add Tip</button>
+      <div class="helper">Tip will be added to your final invoice.</div>
+      <button class="ghost-btn" id="skipTip">No tip today</button>
+    </div>
+    <div class="card center" id="allDone" style="display:none;">
+      <div class="success-icon">&#129309;</div>
+      <div class="success-title" id="doneTitle">All set!</div>
+      <div class="success-sub" id="doneSub"></div>
+    </div>
+  </div>`}
 </div>
-${alreadyBlock}
-${formBlock}
-</div>
+<div class="copied-flash" id="copiedFlash">&#9989; Review copied</div>
 
 <script>
 (function() {
-var rating = 0, tipAmount = 0;
-var labels = {1:"We apologize for the experience",2:"We are sorry -- we will do better",3:"Good, thanks for letting us know",4:"Great experience!",5:"Excellent! Thank you!"};
-var token = "${token || ""}";
-var endpoint = "${submitEndpoint}";
-var anonKey = "${anonKey}";
-var googleUrl = "${googleUrl}";
-var stars = document.querySelectorAll(".star");
-var ratingLabel = document.getElementById("ratingLabel");
-var submitBtn = document.getElementById("submitBtn");
-var tipBtns = document.querySelectorAll(".tip-btn");
-var customTipInput = document.getElementById("customTip");
-var tipNote = document.getElementById("tipNote");
-if (stars.length === 0) return;
+  var token = ${JSON.stringify(token || "")};
+  var endpoint = ${JSON.stringify(submitEndpoint)};
+  var anonKey = ${JSON.stringify(anonKey)};
+  var googleUrl = ${JSON.stringify(googleUrl)};
+  var rating = 0;
+  var submitted = false;
 
-stars.forEach(function(s) { s.addEventListener("click", function() {
-rating = parseInt(s.dataset.v);
-stars.forEach(function(x) { x.classList.toggle("active", parseInt(x.dataset.v) <= rating); });
-if (ratingLabel) {
-ratingLabel.textContent = labels[rating] || "";
-ratingLabel.className = "rating-label" + (rating >= 4 ? " positive" : "");
-}
-if (submitBtn) submitBtn.disabled = false;
-}); });
-
-tipBtns.forEach(function(btn) { btn.addEventListener("click", function() {
-var val = btn.dataset.amount;
-tipBtns.forEach(function(b) { b.classList.remove("active"); });
-if (val === "custom") {
-btn.classList.add("active");
-if (customTipInput) customTipInput.classList.add("visible");
-tipAmount = parseFloat(customTipInput ? customTipInput.value : 0) || 0;
-} else {
-btn.classList.add("active");
-if (customTipInput) customTipInput.classList.remove("visible");
-tipAmount = parseFloat(val);
-}
-if (tipNote) tipNote.style.display = (tipAmount > 0 || val === "custom") ? "block" : "none";
-}); });
-
-if (customTipInput) customTipInput.addEventListener("input", function() {
-tipAmount = parseFloat(customTipInput.value) || 0;
-if (tipNote) tipNote.style.display = tipAmount > 0 ? "block" : "none";
-});
-
-if (submitBtn) submitBtn.addEventListener("click", async function() {
-var errorMsg = document.getElementById("errorMsg");
-if (!rating) {
-if (errorMsg) { errorMsg.textContent = "Please select a star rating"; errorMsg.style.display = "block"; }
-return;
-}
-if (!token) {
-if (errorMsg) { errorMsg.textContent = "Missing review token"; errorMsg.style.display = "block"; }
-return;
-}
-if (!endpoint) {
-if (errorMsg) { errorMsg.textContent = "Configuration error — missing endpoint"; errorMsg.style.display = "block"; }
-return;
-}
-submitBtn.disabled = true;
-submitBtn.textContent = "Submitting...";
-if (errorMsg) errorMsg.style.display = "none";
-var feedbackText = document.getElementById("feedback") ? document.getElementById("feedback").value : "";
-try {
-var headers = { "Content-Type": "application/json" };
-if (anonKey) {
-  headers["Authorization"] = "Bearer " + anonKey;
-}
-var resp = await fetch(endpoint, {
-  method: "POST",
-  headers: headers,
-  body: JSON.stringify({
-    token: token,
-    rating: rating,
-    feedback: feedbackText,
-    tip_amount: tipAmount,
-    google_review_confirmed: false
-  })
-});
-var data = await resp.json();
-if (data.success) {
-  document.getElementById("reviewForm").style.display = "none";
-  var sv = document.getElementById("successView");
-  var h = "";
-  if (rating >= 4 && googleUrl) {
-    h += '<div class="card success-card">';
-    h += '<div class="success-icon">&#127881;</div>';
-    h += '<div class="success-title">Thank You!</div>';
-    h += '<div class="success-sub">We are so glad you had a great experience! Would you mind sharing your review on Google too? It really helps us grow.</div>';
-    h += '<div class="divider"></div>';
-    h += '<div class="step-row"><span class="step-number">1</span> Copy your review</div>';
-    if (feedbackText) {
-      h += '<div class="copy-box" id="reviewText">' + feedbackText.replace(/</g,"&lt;").replace(/>/g,"&gt;") + '</div>';
-      h += '<button class="copy-btn" id="copyBtn" onclick="copyReview()">&#128203; Copy to Clipboard</button>';
-    } else {
-      h += '<div style="font-size:13px;color:rgba(255,255,255,0.4);margin:8px 0 16px;">No written review to copy -- just leave your star rating on Google!</div>';
-    }
-    h += '<div class="step-row"><span class="step-number">2</span> Paste it on Google</div>';
-    h += '<a href="' + googleUrl + '" target="_blank" class="google-btn" onclick="confirmGoogle()">&#11088; Open Google Reviews</a>';
-    h += '<div class="google-helper">The Google review page will open in a new tab.<br>Just paste your review and select your star rating!</div>';
-    h += '</div>';
-  } else {
-    h += '<div class="card success-card">';
-    h += '<div class="success-icon">&#127881;</div>';
-    h += '<div class="success-title">Thank You!</div>';
-    h += '<div class="success-sub">Your review has been submitted. We truly appreciate your feedback!</div>';
-    h += '</div>';
+  function api(body) {
+    var headers = { "Content-Type": "application/json" };
+    if (anonKey) headers["Authorization"] = "Bearer " + anonKey;
+    return fetch(endpoint, { method: "POST", headers: headers, body: JSON.stringify(body) })
+      .then(function(r) { return r.json(); });
   }
-  sv.innerHTML = h;
-  sv.style.display = "block";
-} else {
-  if (errorMsg) { errorMsg.textContent = data.error || "Something went wrong"; errorMsg.style.display = "block"; }
-  submitBtn.disabled = false;
-  submitBtn.textContent = "Submit Review";
-}
-} catch (e) {
-if (errorMsg) { errorMsg.textContent = "Network error. Please try again."; errorMsg.style.display = "block"; }
-submitBtn.disabled = false;
-submitBtn.textContent = "Submit Review";
-}
-});
+  function show(id) {
+    document.querySelectorAll(".step").forEach(function(s) { s.classList.remove("active"); });
+    var el = document.getElementById(id);
+    if (el) el.classList.add("active");
+    window.scrollTo(0, 0);
+  }
+  function reviewText() {
+    var good = document.getElementById("feedbackGood");
+    var bad = document.getElementById("feedbackBad");
+    if (rating >= 4) return good ? good.value.trim() : "";
+    return bad ? bad.value.trim() : "";
+  }
+  function fullSubmit() {
+    if (submitted) return Promise.resolve({ success: true });
+    submitted = true;
+    return api({ token: token, rating: rating, feedback: reviewText(), tip_amount: 0, google_review_confirmed: false })
+      .catch(function() { submitted = false; return { success: false }; });
+  }
+
+  // STEP 1 — stars advance automatically
+  var labels = { 1: "We're sorry to hear that", 2: "We can do better", 3: "Room to improve", 4: "Glad it went well!", 5: "Fantastic!" };
+  document.querySelectorAll(".star").forEach(function(st) {
+    st.addEventListener("click", function() {
+      rating = parseInt(st.getAttribute("data-v"), 10);
+      document.querySelectorAll(".star").forEach(function(s2) {
+        s2.classList.toggle("active", parseInt(s2.getAttribute("data-v"), 10) <= rating);
+      });
+      var lbl = document.getElementById("ratingLabel");
+      lbl.textContent = labels[rating] || "";
+      lbl.classList.toggle("positive", rating >= 4);
+      // Capture the rating immediately — a mid-page bail still counts.
+      if (token) api({ token: token, rating: rating, partial: true }).catch(function() {});
+      setTimeout(function() { show(rating >= 4 ? "step2good" : "step2bad"); }, 450);
+    });
+  });
+
+  // STEP 2 good — chips build the review
+  document.querySelectorAll(".chip").forEach(function(c) {
+    c.addEventListener("click", function() {
+      var ta = document.getElementById("feedbackGood");
+      var txt = c.textContent.trim();
+      ta.value = ta.value.trim() ? ta.value.trim() + ". " + txt : txt;
+      ta.focus();
+    });
+  });
+  var contGood = document.getElementById("continueGood");
+  if (contGood) contGood.addEventListener("click", function() {
+    if (googleUrl) { show("step3google"); }
+    else {
+      // No Google URL configured — just submit and thank.
+      fullSubmit().then(function() { finishThanks(false); show("step4"); });
+    }
+  });
+
+  // STEP 2 bad — private submit
+  var subBad = document.getElementById("submitBad");
+  if (subBad) subBad.addEventListener("click", function() {
+    subBad.disabled = true; subBad.textContent = "Sending...";
+    fullSubmit().then(function(d) {
+      if (d.success) {
+        document.getElementById("tipCard").style.display = "none";
+        document.getElementById("thanksSub").textContent = "Thank you for being honest with us. The owner will reach out personally.";
+        show("step4");
+      } else {
+        var e = document.getElementById("errorBad");
+        e.textContent = "Something went wrong — please try again."; e.style.display = "block";
+        subBad.disabled = false; subBad.textContent = "Send to the Owner";
+      }
+    });
+  });
+
+  // STEP 3 — the Google finish line: submit silently, copy, go.
+  var googleBtn = document.getElementById("googleBtn");
+  if (googleBtn) googleBtn.addEventListener("click", function() {
+    var text = reviewText();
+    if (text && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(function() {});
+      var f = document.getElementById("copiedFlash");
+      f.classList.add("show");
+      setTimeout(function() { f.classList.remove("show"); }, 2200);
+    }
+    fullSubmit();
+    if (token) api({ token: token, google_clicked: true }).catch(function() {});
+    finishThanks(true);
+    // Open Google after a beat so the clipboard write and pings land.
+    setTimeout(function() { window.open(googleUrl, "_blank"); show("step4"); }, 350);
+  });
+  var skipG = document.getElementById("skipGoogle");
+  if (skipG) skipG.addEventListener("click", function() {
+    fullSubmit().then(function(d) {
+      if (d.success) { finishThanks(false); show("step4"); }
+      else {
+        var e = document.getElementById("errorGood");
+        e.textContent = "Something went wrong — please try again."; e.style.display = "block";
+        submitted = false;
+      }
+    });
+  });
+
+  function finishThanks(wentToGoogle) {
+    var sub = document.getElementById("thanksSub");
+    if (sub) sub.textContent = wentToGoogle
+      ? "Your Google review earns " + ${JSON.stringify(techFirst)} + " a $20 bonus from us. Thank you!"
+      : "Your review means a lot to our small team.";
+  }
+
+  // STEP 4 — tip
+  var tipAmount = 0;
+  var sendTip = document.getElementById("sendTip");
+  document.querySelectorAll(".tip-btn").forEach(function(b) {
+    b.addEventListener("click", function() {
+      document.querySelectorAll(".tip-btn").forEach(function(x) { x.classList.remove("selected"); });
+      b.classList.add("selected");
+      var v = b.getAttribute("data-amount");
+      var custom = document.getElementById("customTip");
+      if (v === "custom") {
+        custom.classList.add("show"); custom.focus();
+        tipAmount = parseFloat(custom.value) || 0;
+      } else {
+        custom.classList.remove("show");
+        tipAmount = parseFloat(v);
+      }
+      sendTip.disabled = tipAmount <= 0 && v !== "custom";
+    });
+  });
+  var customTip = document.getElementById("customTip");
+  if (customTip) customTip.addEventListener("input", function() {
+    tipAmount = parseFloat(customTip.value) || 0;
+    sendTip.disabled = tipAmount <= 0;
+  });
+  if (sendTip) sendTip.addEventListener("click", function() {
+    if (tipAmount <= 0) return;
+    sendTip.disabled = true; sendTip.textContent = "Adding...";
+    api({ token: token, tip_update: true, tip_amount: tipAmount }).then(function(d) {
+      document.getElementById("tipCard").style.display = "none";
+      var done = document.getElementById("allDone");
+      document.getElementById("doneSub").textContent = d.success
+        ? "$" + tipAmount.toFixed(0) + " tip added — " + ${JSON.stringify(techFirst)} + " gets every penny. It'll appear on your final invoice."
+        : "We couldn't add the tip just now, but your review went through!";
+      done.style.display = "block";
+    });
+  });
+  var skipTip = document.getElementById("skipTip");
+  if (skipTip) skipTip.addEventListener("click", function() {
+    document.getElementById("tipCard").style.display = "none";
+    var done = document.getElementById("allDone");
+    document.getElementById("doneSub").textContent = "Thanks again for your business!";
+    done.style.display = "block";
+  });
 })();
-
-function copyReview() {
-var el = document.getElementById("reviewText");
-var btn = document.getElementById("copyBtn");
-if (!el) return;
-var text = el.innerText;
-if (navigator.clipboard) {
-navigator.clipboard.writeText(text).then(function() {
-btn.innerHTML = "&#9989; Copied!";
-btn.classList.add("copied");
-setTimeout(function() { btn.innerHTML = "&#128203; Copy to Clipboard"; btn.classList.remove("copied"); }, 3000);
-});
-} else {
-var range = document.createRange();
-range.selectNode(el);
-window.getSelection().removeAllRanges();
-window.getSelection().addRange(range);
-document.execCommand("copy");
-window.getSelection().removeAllRanges();
-btn.innerHTML = "&#9989; Copied!";
-btn.classList.add("copied");
-setTimeout(function() { btn.innerHTML = "&#128203; Copy to Clipboard"; btn.classList.remove("copied"); }, 3000);
-}
-}
-
-function confirmGoogle() {
-var token = "${token || ""}";
-var endpoint = "${submitEndpoint}";
-var anonKey = "${anonKey}";
-if (!token || !endpoint) return;
-var headers = { "Content-Type": "application/json" };
-if (anonKey) {
-headers["Authorization"] = "Bearer " + anonKey;
-}
-fetch(endpoint, {
-method: "POST",
-headers: headers,
-body: JSON.stringify({
-  token: token,
-  google_review_confirmed: true
-})
-}).catch(function() {});
-}
 </script>
 </body>
 </html>`;
 
-res.setHeader("Content-Type", "text/html");
-res.status(200).send(page);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(200).send(page);
 }
