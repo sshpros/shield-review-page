@@ -196,7 +196,10 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
         <span class="b-icon">&#11088;</span>
         <span>We pay ${techFirst} a <strong>$20 bonus</strong> for every 5-star review left on Google &mdash; your review goes straight to ${techFirst === "Your" ? "them" : techFirst}.</span>
       </div>
-      <button class="primary-btn" id="continueGood">Continue</button>
+      <a class="google-btn" id="googleBtn">Finish on Google &mdash; we'll copy your review</a>
+      <div class="helper">One tap: your text is copied and Google opens &mdash; paste, tap your stars, done.</div>
+      <button class="ghost-btn" id="skipGoogle">Just submit without Google</button>
+      <div class="error-msg" id="errorGood" style="display:none;"></div>
     </div>
   </div>
 
@@ -208,19 +211,6 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       <textarea id="feedbackBad" placeholder="What could we have done better?" style="margin-top:12px;"></textarea>
       <button class="primary-btn" id="submitBad">Send to the Owner</button>
       <div class="error-msg" id="errorBad" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- STEP 3 (4-5 stars): the Google finish line -->
-  <div class="step" id="step3google">
-    <div class="card center">
-      <div class="success-icon">&#11088;</div>
-      <div class="success-title">One tap left</div>
-      <div class="success-sub">Your review is written &mdash; posting it on Google is what really helps us, and it earns ${techFirst} the <strong>$20 bonus</strong>.</div>
-      <a class="google-btn" id="googleBtn">Finish on Google &mdash; your review is copied</a>
-      <div class="helper">Paste, tap your stars, done &mdash; takes 10 seconds.</div>
-      <button class="ghost-btn" id="skipGoogle">No thanks, just submit</button>
-      <div class="error-msg" id="errorGood" style="display:none;"></div>
     </div>
   </div>
 
@@ -313,15 +303,6 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       ta.focus();
     });
   });
-  var contGood = document.getElementById("continueGood");
-  if (contGood) contGood.addEventListener("click", function() {
-    if (googleUrl) { show("step3google"); }
-    else {
-      // No Google URL configured — just submit and thank.
-      fullSubmit().then(function() { finishThanks(false); show("step4"); });
-    }
-  });
-
   // STEP 2 bad — private submit
   var subBad = document.getElementById("submitBad");
   if (subBad) subBad.addEventListener("click", function() {
@@ -339,8 +320,16 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
     });
   });
 
-  // STEP 3 — the Google finish line: submit silently, copy, go.
+  // The Google finish line — right under the composer, one tap:
+  // submit silently, copy the text, open Google.
   var googleBtn = document.getElementById("googleBtn");
+  if (googleBtn && !googleUrl) {
+    // No Google URL configured for this request — degrade to a plain submit.
+    googleBtn.style.display = "none";
+    document.querySelector("#step2good .helper").style.display = "none";
+    var sk = document.getElementById("skipGoogle");
+    if (sk) { sk.className = "primary-btn"; sk.textContent = "Submit Review"; }
+  }
   if (googleBtn) googleBtn.addEventListener("click", function() {
     var text = reviewText();
     if (text && navigator.clipboard) {
