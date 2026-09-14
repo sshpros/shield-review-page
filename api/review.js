@@ -32,6 +32,7 @@ export default async function handler(req, res) {
   const priorRating = Number(reviewData?.review_rating || 0);
   const priorFeedback = reviewData?.review_feedback || "";
   const googleDone = reviewData?.google_review_confirmed || false;
+  const chipTags = Array.isArray(reviewData?.chip_tags) ? reviewData.chip_tags : [];
   const techPhoto = reviewData?.tech_photo_url || photo || "";
   const firstName = customerName.split(" ")[0];
   const techFirst = techName.split(" ")[0];
@@ -219,19 +220,38 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
     <div class="card">
       <div class="section-title">Tell us what went well</div>
       <textarea id="feedbackGood" placeholder="A sentence or two about your experience..."></textarea>
-      <div class="chips" id="chips">
-        <span class="chip">${techFirst} was on time</span>
-        <span class="chip">Clean installation</span>
-        <span class="chip">Explained everything clearly</span>
-        <span class="chip">Would recommend</span>
-      </div>
+      <div class="chips" id="chips">${(() => {
+        // Templates keyed by what we KNOW this customer owns (from their
+        // equipment records). Named products make the Google review specific
+        // — and keyword-rich for local search.
+        const bank = {
+          alarm: [
+            `Love our new Alarm.com security system`,
+            `The Alarm.com app makes everything easy`,
+          ],
+          cameras: [
+            `The security cameras look great and the picture is crystal clear`,
+            `Easy to check our cameras from my phone`,
+          ],
+          doorbell: [`The new video doorbell works perfectly`],
+          networking: [`WiFi is fast in every corner of the house now`],
+          audio: [`The sound system turned out amazing`],
+          access: [`Door access setup works flawlessly`],
+        };
+        const chips = [
+          `${techFirst} was on time and professional`,
+          `Clean, tidy installation`,
+        ];
+        for (const tag of chipTags) for (const c of (bank[tag] || [])) chips.push(c);
+        chips.push(`Explained everything clearly`, `Would recommend to neighbors`);
+        return chips.slice(0, 8).map((c) => `<span class="chip">${c}</span>`).join("");
+      })()}</div>
       <div class="bonus-banner">
         <span class="b-icon">&#11088;</span>
         <span>We pay ${techFirst} a <strong>$20 bonus</strong> for every 5-star review left on Google &mdash; your review goes straight to ${techFirst === "Your" ? "them" : techFirst}.</span>
       </div>
       <a class="google-btn" id="googleBtn">Finish on Google &mdash; we'll copy your review</a>
       <div class="helper">One tap: your text is copied and Google opens &mdash; paste, tap your stars, done.</div>
-      <button class="ghost-btn" id="skipGoogle">Just submit without Google</button>
       <div class="error-msg" id="errorGood" style="display:none;"></div>
     </div>
   </div>
@@ -358,12 +378,17 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   // submit silently, copy the text, open Google.
   var googleBtn = document.getElementById("googleBtn");
   if (googleBtn && !googleUrl) {
-    // No Google URL configured for this request — degrade to a plain submit.
-    googleBtn.style.display = "none";
+    // No Google URL configured for this request — plain submit instead.
+    googleBtn.textContent = "Submit Review";
     document.querySelector("#step2good .helper").style.display = "none";
-    var sk = document.getElementById("skipGoogle");
-    if (sk) { sk.className = "primary-btn"; sk.textContent = "Submit Review"; }
   }
+  // Bail insurance: with no skip button, typed text is saved as they go.
+  var goodTa = document.getElementById("feedbackGood");
+  if (goodTa) goodTa.addEventListener("blur", function() {
+    if (token && rating && goodTa.value.trim()) {
+      api({ token: token, rating: rating, feedback: goodTa.value.trim(), partial: true }).catch(function() {});
+    }
+  });
   if (googleBtn) googleBtn.addEventListener("click", function() {
     var text = reviewText();
     if (text && navigator.clipboard) {
@@ -372,22 +397,22 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       f.classList.add("show");
       setTimeout(function() { f.classList.remove("show"); }, 2200);
     }
+    if (!googleUrl) {
+      fullSubmit().then(function(d) {
+        if (d.success) { finishThanks(false); show("step4"); }
+        else {
+          var e = document.getElementById("errorGood");
+          e.textContent = "Something went wrong — please try again."; e.style.display = "block";
+          submitted = false;
+        }
+      });
+      return;
+    }
     fullSubmit();
     if (token) api({ token: token, google_clicked: true }).catch(function() {});
     finishThanks(true);
     // Open Google after a beat so the clipboard write and pings land.
     setTimeout(function() { window.open(googleUrl, "_blank"); show("step4"); }, 350);
-  });
-  var skipG = document.getElementById("skipGoogle");
-  if (skipG) skipG.addEventListener("click", function() {
-    fullSubmit().then(function(d) {
-      if (d.success) { finishThanks(false); show("step4"); }
-      else {
-        var e = document.getElementById("errorGood");
-        e.textContent = "Something went wrong — please try again."; e.style.display = "block";
-        submitted = false;
-      }
-    });
   });
 
   function finishThanks(wentToGoogle) {
