@@ -122,6 +122,20 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   padding:16px; cursor:pointer; margin-top:16px; text-decoration:none;
   box-shadow:0 8px 24px rgba(255,255,255,0.15);
 }
+/* Rotating glow behind the Google CTA — the one conversion moment on the
+   page. Google-brand hues on the ring; @property animates (Safari 16.4+),
+   older browsers show the plain button. 18 = button 16 + 2 (concentric). */
+@property --glow-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.glow-wrap { position:relative; border-radius:18px; isolation:isolate; margin-top:16px; }
+.glow-wrap .google-btn { margin-top:0; }
+.glow-wrap::before, .glow-wrap::after {
+  content:""; position:absolute; inset:-2px; z-index:-1; border-radius:18px;
+  background: conic-gradient(from var(--glow-angle), #4285F4, #34A853, #FBBC05, #EA4335, #4285F4);
+  animation: glow-rotate 4s linear infinite;
+}
+.glow-wrap::after { filter: blur(16px); opacity:0.45; }
+@keyframes glow-rotate { to { --glow-angle: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .glow-wrap::before, .glow-wrap::after { animation:none; } }
 .ghost-btn {
   display:block; width:100%; text-align:center; background:none; color:rgba(255,255,255,0.45);
   font-size:14px; border:none; padding:12px; cursor:pointer; margin-top:6px; text-decoration:underline;
@@ -173,7 +187,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
         ? `And for the $${priorTip.toFixed(0)} tip — ${techFirst} got every penny. You're all set!`
         : `Your review means a lot to our small team.`}</div>
       ${priorRating >= 4 && googleUrl && !googleDone ? `
-      <a class="google-btn" id="revisitGoogleBtn" style="margin-top:18px;">Post it on Google too &mdash; we'll copy your review</a>
+      <div class="glow-wrap" style="margin-top:18px;"><a class="google-btn" id="revisitGoogleBtn">Post it on Google too &mdash; we'll copy your review</a></div>
       <div class="helper">Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.</div>` : ``}
     </div>
     ${priorTip > 0 ? `` : `
@@ -250,7 +264,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
         <span class="b-icon">&#11088;</span>
         <span>We pay ${techFirst} a <strong>$20 bonus</strong> for every 5-star review left on Google &mdash; your review goes straight to ${techFirst === "Your" ? "them" : techFirst}.</span>
       </div>
-      <a class="google-btn" id="googleBtn">Finish on Google &mdash; we'll copy your review</a>
+      <div class="glow-wrap"><a class="google-btn" id="googleBtn">Finish on Google &mdash; we'll copy your review</a></div>
       <div class="helper">One tap: your text is copied and Google opens &mdash; paste, tap your stars, done.</div>
       <div class="error-msg" id="errorGood" style="display:none;"></div>
     </div>
