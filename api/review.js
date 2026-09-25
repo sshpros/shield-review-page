@@ -54,21 +54,46 @@ export default async function handler(req, res) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121217">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <title>Review - Shield Low Voltage</title>
 <style>
+/* ---- Theme tokens — same block as the estimate/payment pages (the app's ShieldTheme).
+   Dark first; light variants under prefers-color-scheme. The page follows the device. */
+:root {
+  color-scheme: dark;
+  --bg: #121217; --card: #1c1c24; --input-bg: rgba(255,255,255,.06);
+  --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.16);
+  --text: #f4f5f7; --text-2: rgba(244,245,247,.7); --text-3: rgba(244,245,247,.5); --star-off: rgba(255,255,255,.15);
+  --blue: #6badff; --chip-text: #93c5fd; --green: #3fd39a; --amber: #f2bf3a; --red: #f07070;
+  --shadow: 0 12px 40px rgba(0,0,0,.4);
+  --google-btn-bg: #ffffff; --google-btn-text: #1f2937; --google-btn-shadow: 0 8px 24px rgba(255,255,255,.15);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --card: #f2f2f7; --input-bg: rgba(118,118,128,.12);
+    --border: rgba(0,0,0,.1); --border-strong: rgba(0,0,0,.18);
+    --text: #1a294d; --text-2: rgba(26,41,77,.75); --text-3: rgba(26,41,77,.55); --star-off: rgba(0,0,0,.12);
+    --blue: #1a59c4; --chip-text: #1a59c4; --green: #1f8f5f; --amber: #b06e00; --red: #c43c3c;
+    --shadow: 0 12px 40px rgba(26,41,77,.12);
+    --google-btn-bg: #ffffff; --google-btn-text: #1f2937; --google-btn-shadow: 0 8px 24px rgba(26,41,77,.15);
+  }
+}
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;
-  background:linear-gradient(180deg,#0a0e1a 0%,#111827 100%);
-  color:#fff; min-height:100vh; padding:20px 16px 48px;
+  background:var(--bg);
+  color:var(--text); min-height:100vh; padding:20px 16px 48px;
 }
 .container { max-width:440px; margin:0 auto; }
 .logo-section { text-align:center; margin-bottom:18px; }
 .logo-img { width:84px; height:84px; object-fit:contain; filter:drop-shadow(0 8px 24px rgba(59,130,246,0.35)); }
 .card {
-  background:rgba(22,27,34,0.95); border-radius:20px;
-  border:1px solid rgba(255,255,255,0.06); padding:24px 20px;
-  margin-bottom:14px; box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  background:var(--card); border-radius:20px;
+  border:1px solid var(--border); padding:24px 20px;
+  margin-bottom:14px; box-shadow:var(--shadow);
 }
 .center { text-align:center; }
 .tech-photo { width:88px; height:88px; border-radius:50%; border:2px solid rgba(59,130,246,0.4); object-fit:cover; margin-bottom:10px; }
@@ -78,21 +103,21 @@ body {
   font-size:40px; color:rgba(59,130,246,0.5);
 }
 .tech-name { font-size:21px; font-weight:700; }
-.greeting { font-size:15px; color:rgba(255,255,255,0.65); margin-top:6px; line-height:1.45; }
+.greeting { font-size:15px; color:var(--text-2); margin-top:6px; line-height:1.45; }
 .ask { font-size:17px; font-weight:700; margin:18px 0 6px; }
 .stars { display:flex; justify-content:center; gap:8px; margin:10px 0 2px; }
 .star {
-  font-size:44px; cursor:pointer; color:rgba(255,255,255,0.15);
+  font-size:44px; cursor:pointer; color:var(--star-off);
   transition:all 0.15s ease; user-select:none; -webkit-tap-highlight-color:transparent;
   padding:2px 4px;
 }
-.star.active { color:#facc15; transform:scale(1.08); }
-.rating-label { font-size:14px; font-weight:600; color:rgba(255,255,255,0.5); margin-top:8px; min-height:20px; }
-.rating-label.positive { color:#22c55e; }
+.star.active { color:var(--amber); transform:scale(1.08); }
+.rating-label { font-size:14px; font-weight:600; color:var(--text-3); margin-top:8px; min-height:20px; }
+.rating-label.positive { color:var(--green); }
 .section-title { font-size:16px; font-weight:700; margin-bottom:10px; }
 textarea {
-  width:100%; min-height:110px; background:rgba(10,14,26,0.7);
-  border:1px solid rgba(255,255,255,0.1); border-radius:14px; color:#fff;
+  width:100%; min-height:110px; background:var(--input-bg);
+  border:1px solid var(--border-strong); border-radius:14px; color:var(--text);
   font-size:16px; padding:14px; resize:vertical; font-family:inherit; line-height:1.5;
 }
 textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
@@ -100,7 +125,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
 .chip {
   font-size:13px; padding:7px 12px; border-radius:999px;
   background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3);
-  color:#93c5fd; cursor:pointer; user-select:none;
+  color:var(--chip-text); cursor:pointer; user-select:none;
 }
 .chip:active { background:rgba(59,130,246,0.3); }
 .bonus-banner {
@@ -117,10 +142,10 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
 }
 .primary-btn:disabled { opacity:0.45; box-shadow:none; }
 .google-btn {
-  display:block; width:100%; text-align:center; background:#fff; color:#1f2937;
-  font-size:17px; font-weight:700; border:none; border-radius:16px;
+  display:block; width:100%; text-align:center; background:var(--google-btn-bg); color:var(--google-btn-text);
+  font-size:17px; font-weight:700; border:1px solid var(--border); border-radius:16px;
   padding:16px; cursor:pointer; margin-top:16px; text-decoration:none;
-  box-shadow:0 8px 24px rgba(255,255,255,0.15);
+  box-shadow:var(--google-btn-shadow);
 }
 /* Rotating glow behind the Google CTA — the one conversion moment on the
    page. Google-brand hues on the ring; @property animates (Safari 16.4+),
@@ -137,28 +162,28 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
 @keyframes glow-rotate { to { --glow-angle: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .glow-wrap::before, .glow-wrap::after { animation:none; } }
 .ghost-btn {
-  display:block; width:100%; text-align:center; background:none; color:rgba(255,255,255,0.45);
+  display:block; width:100%; text-align:center; background:none; color:var(--text-3);
   font-size:14px; border:none; padding:12px; cursor:pointer; margin-top:6px; text-decoration:underline;
 }
-.helper { font-size:13px; color:rgba(255,255,255,0.45); text-align:center; margin-top:10px; line-height:1.5; }
+.helper { font-size:13px; color:var(--text-3); text-align:center; margin-top:10px; line-height:1.5; }
 .tip-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
 .tip-btn {
   text-align:center; padding:16px 8px; border-radius:14px; cursor:pointer;
   background:rgba(59,130,246,0.1); border:1.5px solid rgba(59,130,246,0.25);
   font-size:18px; font-weight:700; user-select:none;
 }
-.tip-btn small { display:block; font-size:11px; font-weight:500; color:rgba(255,255,255,0.5); margin-top:2px; }
-.tip-btn.selected { background:rgba(59,130,246,0.35); border-color:#3b82f6; }
+.tip-btn small { display:block; font-size:11px; font-weight:500; color:var(--text-3); margin-top:2px; }
+.tip-btn.selected { background:rgba(59,130,246,0.35); border-color:var(--blue); }
 .custom-tip-input {
-  display:none; width:100%; margin-top:10px; background:rgba(10,14,26,0.7);
-  border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:#fff;
+  display:none; width:100%; margin-top:10px; background:var(--input-bg);
+  border:1px solid var(--border-strong); border-radius:12px; color:var(--text);
   font-size:16px; padding:12px 14px;
 }
 .custom-tip-input.show { display:block; }
 .success-icon { font-size:44px; margin-bottom:8px; }
 .success-title { font-size:22px; font-weight:800; }
-.success-sub { font-size:15px; color:rgba(255,255,255,0.65); margin-top:8px; line-height:1.5; }
-.error-msg { color:#f87171; font-size:14px; text-align:center; margin-top:10px; }
+.success-sub { font-size:15px; color:var(--text-2); margin-top:8px; line-height:1.5; }
+.error-msg { color:var(--red); font-size:14px; text-align:center; margin-top:10px; }
 .copied-flash {
   position:fixed; left:50%; bottom:36px; transform:translateX(-50%);
   background:#22c55e; color:#052e16; font-weight:700; font-size:14px;
