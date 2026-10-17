@@ -33,6 +33,10 @@ export default async function handler(req, res) {
   const priorFeedback = reviewData?.review_feedback || "";
   const googleDone = reviewData?.google_review_confirmed || false;
   const chipTags = Array.isArray(reviewData?.chip_tags) ? reviewData.chip_tags : [];
+  // AI suggestions written from this visit's notes, equipment and city
+  // (get-review-request, Claude). Empty → the template bank below.
+  const aiChips = Array.isArray(reviewData?.chips) ? reviewData.chips.filter((c) => typeof c === "string") : [];
+  const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const techPhoto = reviewData?.tech_photo_url || photo || "";
   const firstName = customerName.split(" ")[0];
   const techFirst = techName.split(" ")[0];
@@ -259,7 +263,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
     <div class="card">
       <div class="section-title">Tell us what went well</div>
       <textarea id="feedbackGood" placeholder="A sentence or two about your experience..."></textarea>
-      <div class="chips" id="chips">${(() => {
+      <div class="chips" id="chips">${aiChips.length ? aiChips.slice(0, 8).map((c) => `<span class="chip">${esc(c)}</span>`).join("") : (() => {
         // Templates keyed by what we KNOW this customer owns (from their
         // equipment records). Named products make the Google review specific
         // — and keyword-rich for local search.
