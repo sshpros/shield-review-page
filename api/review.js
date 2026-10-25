@@ -206,8 +206,10 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
 
   ${alreadyReviewed ? `
   <!-- REVISIT: review done. Offer what's still open — the tip, and (for
-       4-5 stars) the Google finish if they never got there. Once the tip
-       is in too, it's a plain thank-you (Kyle, 2026-09-14). -->
+       4-5 stars) the Google finish. The Google button stays even after
+       they've tapped it once: people open Google, get sidetracked, and come
+       back to the link later (2026-10-25). Once the tip is in too, the rest
+       is a plain thank-you (Kyle, 2026-09-14). -->
   <div class="step active" id="step4">
     <div class="card center">
       <div class="success-icon">&#127881;</div>
@@ -215,9 +217,13 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       <div class="success-sub" id="thanksSub">${priorTip > 0
         ? `And for the $${priorTip.toFixed(0)} tip — ${techFirst} got every penny. You're all set!`
         : `Your review means a lot to our small team.`}</div>
-      ${priorRating >= 4 && googleUrl && !googleDone ? `
-      <div class="glow-wrap" style="margin-top:18px;"><a class="google-btn" id="revisitGoogleBtn">Post it on Google too &mdash; we'll copy your review</a></div>
-      <div class="helper">Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.</div>` : ``}
+      ${priorRating >= 4 && googleUrl ? `
+      <div class="glow-wrap" style="margin-top:18px;"><a class="google-btn" id="revisitGoogleBtn">${googleDone
+        ? `Leave your review on Google &mdash; we'll copy it again`
+        : `Post it on Google too &mdash; we'll copy your review`}</a></div>
+      <div class="helper">${googleDone
+        ? `Didn't get to finish? Pick up where you left off &mdash; already posted? You're all set.`
+        : `Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.`}</div>` : ``}
     </div>
     ${priorTip > 0 ? `` : `
     <div class="card" id="tipCard">
@@ -316,6 +322,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       <div class="success-icon">&#127881;</div>
       <div class="success-title">Thank You, ${firstName}!</div>
       <div class="success-sub" id="thanksSub">Your review means a lot to our small team.</div>
+      ${googleUrl ? `<button class="ghost-btn" id="googleAgainBtn" style="display:none;">Didn't finish on Google? Open it again</button>` : ``}
     </div>
     <div class="card" id="tipCard">
       <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst} on top?</div>
@@ -459,25 +466,30 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   });
 
   function finishThanks(wentToGoogle) {
+    var again = document.getElementById("googleAgainBtn");
+    if (again && wentToGoogle) again.style.display = "block";
     var sub = document.getElementById("thanksSub");
     if (sub) sub.textContent = wentToGoogle
       ? "Your Google review earns " + ${JSON.stringify(techFirst)} + " a $20 bonus from us. Thank you!"
       : "Your review means a lot to our small team.";
   }
 
-  // REVISIT — Google still open: copy their saved review text and go.
-  var revisitGoogle = document.getElementById("revisitGoogleBtn");
-  if (revisitGoogle) revisitGoogle.addEventListener("click", function() {
-    if (priorFeedback && navigator.clipboard) {
-      navigator.clipboard.writeText(priorFeedback).catch(function() {});
+  // Back to Google: copy their review text again and reopen it. The button
+  // stays put — they may bail on Google more than once.
+  function reopenGoogle(text) {
+    if (text && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(function() {});
       var f = document.getElementById("copiedFlash");
       f.classList.add("show");
       setTimeout(function() { f.classList.remove("show"); }, 2200);
     }
     if (token) api({ token: token, google_clicked: true }).catch(function() {});
-    revisitGoogle.style.display = "none";
     setTimeout(function() { window.open(googleUrl, "_blank"); }, 350);
-  });
+  }
+  var revisitGoogle = document.getElementById("revisitGoogleBtn");
+  if (revisitGoogle) revisitGoogle.addEventListener("click", function() { reopenGoogle(priorFeedback); });
+  var googleAgain = document.getElementById("googleAgainBtn");
+  if (googleAgain) googleAgain.addEventListener("click", function() { reopenGoogle(reviewText()); });
 
   // STEP 4 — tip
   var tipAmount = 0;
