@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   const techFirst = techName.split(" ")[0];
 
   const logoUrl = SUPABASE_URL
-    ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/logo-3d.png?v=7`
+    ? `${SUPABASE_URL}/storage/v1/object/public/public-assets/brand/shield-lockup-v2.png`
     : "";
   const submitEndpoint = SUPABASE_URL
     ? `${SUPABASE_URL}/functions/v1/submit-review`
