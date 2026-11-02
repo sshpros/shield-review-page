@@ -62,6 +62,7 @@ export default async function handler(req, res) {
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121217">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <title>Review - Shield Low Voltage</title>
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
 /* ---- Theme tokens — same block as the estimate/payment pages (the app's ShieldTheme).
    Dark first; light variants under prefers-color-scheme. The page follows the device. */
