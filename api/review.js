@@ -8,7 +8,7 @@
 // their text, and lands them in Google's review box in one tap. The tip
 // moved to the thank-you screen, after the Google step.
 export default async function handler(req, res) {
-  const { token, tech, customer, google, photo } = req.query;
+  const { token, tech, customer, google, photo, job_id } = req.query;
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -17,6 +17,19 @@ export default async function handler(req, res) {
     try {
       const resp = await fetch(
         `${SUPABASE_URL}/functions/v1/get-review-request?token=${token}`,
+        { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      const json = await resp.json();
+      if (json.success) reviewData = json.data;
+    } catch (e) {}
+  }
+
+  // The app's Preview (token=PREVIEW&job_id=…) shows the AI suggestions that
+  // job's customer would get, not the stock phrases (2026-11-08).
+  if (token === "PREVIEW" && job_id && /^[0-9a-f-]{36}$/i.test(job_id) && SUPABASE_URL) {
+    try {
+      const resp = await fetch(
+        `${SUPABASE_URL}/functions/v1/get-review-request?token=PREVIEW&job_id=${encodeURIComponent(job_id)}&tech=${encodeURIComponent(tech || "")}`,
         { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
       );
       const json = await resp.json();
