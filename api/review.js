@@ -212,6 +212,26 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   pointer-events:none; z-index:50;
 }
 .copied-flash.show { opacity:1; }
+/* Low-star "we're listening" form (2026-11-13): multi-select picks reuse the
+   suggestion-chip look; selected = filled blue. Buttons, not spans, so they're
+   keyboard/VoiceOver reachable. */
+.field-label { font-size:15px; font-weight:700; margin:20px 0 2px; }
+.field-hint { font-size:13px; color:var(--text-3); line-height:1.4; }
+.chip.pick {
+  font-family:inherit; font-size:15px; padding:10px 14px; -webkit-tap-highlight-color:transparent;
+  transition:background 0.12s ease, border-color 0.12s ease;
+}
+.chip.pick.selected { background:rgba(59,130,246,0.35); border-color:var(--blue); color:var(--text); font-weight:600; }
+.chip.pick.selected::before { content:"✓ "; }
+.seg { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+.seg .chip.pick { text-align:center; padding:12px 6px; }
+textarea.tall { min-height:200px; }
+.text-input {
+  width:100%; margin-top:10px; background:var(--input-bg);
+  border:1px solid var(--border-strong); border-radius:12px; color:var(--text);
+  font-size:16px; padding:12px 14px; font-family:inherit;
+}
+.text-input:focus { outline:none; border-color:rgba(59,130,246,0.5); }
 .step { display:none; }
 .step.active { display:block; animation:fadeUp 0.3s ease; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
@@ -231,7 +251,9 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
     <div class="card center">
       <div class="success-icon">&#127881;</div>
       <div class="success-title">Thanks for your review, ${firstName}!</div>
-      <div class="success-sub" id="thanksSub">${priorTip > 0
+      <div class="success-sub" id="thanksSub">${priorRating >= 1 && priorRating <= 3
+        ? `We've got your feedback, and the owner will reach out within one business day to make it right.`
+        : priorTip > 0
         ? `And for the $${priorTip.toFixed(0)} tip — ${techFirst} got every penny. You're all set!`
         : `Your review means a lot to our small team.`}</div>
       ${priorRating >= 4 && googleUrl ? `
@@ -242,7 +264,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
         ? `Didn't get to finish? Pick up where you left off &mdash; already posted? You're all set.`
         : `Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.`}</div>` : ``}
     </div>
-    ${priorTip > 0 || !tipsOn ? `` : `
+    ${priorTip > 0 || !tipsOn || (priorRating >= 1 && priorRating <= 3) ? `` : `
     <div class="card" id="tipCard">
       <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst}?</div>
       <div class="greeting" style="text-align:center; margin-top:0;">Tips are extra &mdash; 100% goes to your technician.</div>
@@ -322,14 +344,45 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
     </div>
   </div>
 
-  <!-- STEP 2 (1-3 stars): private path -->
+  <!-- STEP 2 (1-3 stars): private path — the "we're listening" form
+       (2026-11-13). Everything here goes to the owner (push + email) and
+       flags the review for follow-up in the app. -->
   <div class="step" id="step2bad">
     <div class="card">
-      <div class="section-title">We want to make this right</div>
-      <div class="greeting" style="margin-top:0;">Tell us what happened &mdash; this goes directly to the owner, and he'll personally follow up.</div>
-      <textarea id="feedbackBad" placeholder="What could we have done better?" style="margin-top:12px;"></textarea>
+      <div class="section-title">We're listening, ${esc(firstName)}</div>
+      <div class="greeting" style="margin-top:0;">We're sorry we let you down. This goes straight to the owner &mdash; not a call center &mdash; and he'll personally follow up.</div>
+
+      <div class="field-label">What was it about?</div>
+      <div class="field-hint">Tap all that apply.</div>
+      <div class="chips" id="badTopics"><button type="button" class="chip pick" data-group="topics" data-v="Scheduling" aria-pressed="false">Scheduling</button><button type="button" class="chip pick" data-group="topics" data-v="Communication" aria-pressed="false">Communication</button><button type="button" class="chip pick" data-group="topics" data-v="Workmanship" aria-pressed="false">Workmanship</button><button type="button" class="chip pick" data-group="topics" data-v="Cleanliness" aria-pressed="false">Cleanliness</button><button type="button" class="chip pick" data-group="topics" data-v="Price" aria-pressed="false">Price</button><button type="button" class="chip pick" data-group="topics" data-v="Equipment" aria-pressed="false">Equipment</button><button type="button" class="chip pick" data-group="topics" data-v="The technician" aria-pressed="false">The technician</button><button type="button" class="chip pick" data-group="topics" data-v="Other" aria-pressed="false">Other</button></div>
+
+      <div class="field-label">Tell us everything</div>
+      <div class="field-hint">Take as much room as you need &mdash; the details help us fix it.</div>
+      <textarea id="feedbackBad" class="tall" placeholder="What happened, and what should we have done differently?" style="margin-top:10px;"></textarea>
+
+      <div class="field-label">What would make this right?</div>
+      <div class="field-hint">Tap all that apply.</div>
+      <div class="chips" id="badMakeRight"><button type="button" class="chip pick" data-group="make_right" data-v="redo" aria-pressed="false">Come back and fix the work</button><button type="button" class="chip pick" data-group="make_right" data-v="refund" aria-pressed="false">A refund or credit</button><button type="button" class="chip pick" data-group="make_right" data-v="call" aria-pressed="false">Call me to talk it through</button><button type="button" class="chip pick" data-group="make_right" data-v="fyi" aria-pressed="false">Nothing &mdash; just wanted you to know</button></div>
+
+      <div class="field-label">How should we reach you?</div>
+      <div class="seg" id="badContact"><button type="button" class="chip pick" data-group="contact_method" data-v="call" aria-pressed="false">Call</button><button type="button" class="chip pick" data-group="contact_method" data-v="text" aria-pressed="false">Text</button><button type="button" class="chip pick" data-group="contact_method" data-v="email" aria-pressed="false">Email</button></div>
+
+      <div class="field-label">Best time to reach you</div>
+      <div class="chips" id="badTime"><button type="button" class="chip pick" data-group="best_time" data-v="Morning" aria-pressed="false">Morning</button><button type="button" class="chip pick" data-group="best_time" data-v="Afternoon" aria-pressed="false">Afternoon</button><button type="button" class="chip pick" data-group="best_time" data-v="Evening" aria-pressed="false">Evening</button><button type="button" class="chip pick" data-group="best_time" data-v="Anytime" aria-pressed="false">Anytime</button></div>
+      <input type="text" id="badTimeNote" class="text-input" maxlength="200" autocomplete="off" placeholder="Or a specific day/time (optional)">
+
       <button class="primary-btn" id="submitBad">Send to the Owner</button>
       <div class="error-msg" id="errorBad" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3 (1-3 stars): closing screen — no tip ask after a bad visit -->
+  <div class="step" id="step3bad">
+    <div class="card center">
+      <div class="success-icon">&#129309;</div>
+      <div class="success-title">Thank you, ${esc(firstName)}.</div>
+      <div class="success-sub">We're sorry this visit fell short, and we appreciate you telling us straight.</div>
+      <div class="success-sub" id="badCloseSub" style="margin-top:12px;">The owner will reach out within one business day to make it right.</div>
     </div>
   </div>
 
@@ -394,7 +447,9 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   function fullSubmit() {
     if (submitted) return Promise.resolve({ success: true });
     submitted = true;
-    return api({ token: token, rating: rating, feedback: reviewText(), tip_amount: 0, google_review_confirmed: false })
+    var body = { token: token, rating: rating, feedback: reviewText(), tip_amount: 0, google_review_confirmed: false };
+    if (rating <= 3) body.feedback_details = badDetails();
+    return api(body)
       .catch(function() { submitted = false; return { success: false }; });
   }
 
@@ -416,7 +471,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
   });
 
   // STEP 2 good — chips build the review
-  document.querySelectorAll(".chip").forEach(function(c) {
+  document.querySelectorAll("#chips .chip").forEach(function(c) {
     c.addEventListener("click", function() {
       var ta = document.getElementById("feedbackGood");
       var txt = c.textContent.trim();
@@ -424,15 +479,57 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       ta.focus();
     });
   });
-  // STEP 2 bad — private submit
+  // STEP 2 bad — picks (multi-select topics / make-right; single-select
+  // contact method and best time), then the private submit.
+  var singleGroups = { contact_method: true, best_time: true };
+  document.querySelectorAll(".chip.pick").forEach(function(b) {
+    b.addEventListener("click", function() {
+      var group = b.getAttribute("data-group");
+      var on = !b.classList.contains("selected");
+      if (singleGroups[group]) {
+        document.querySelectorAll('.chip.pick[data-group="' + group + '"]').forEach(function(x) {
+          x.classList.remove("selected"); x.setAttribute("aria-pressed", "false");
+        });
+      }
+      b.classList.toggle("selected", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  });
+  function picked(group) {
+    var out = [];
+    document.querySelectorAll('.chip.pick.selected[data-group="' + group + '"]').forEach(function(x) {
+      out.push(x.getAttribute("data-v"));
+    });
+    return out;
+  }
+  function badDetails() {
+    var note = document.getElementById("badTimeNote");
+    var time = picked("best_time")[0] || "";
+    var extra = note ? note.value.trim() : "";
+    return {
+      topics: picked("topics"),
+      make_right: picked("make_right"),
+      contact_method: picked("contact_method")[0] || "",
+      best_time: time && extra ? time + " — " + extra : (time || extra)
+    };
+  }
+  var badTa = document.getElementById("feedbackBad");
+  if (badTa) badTa.addEventListener("blur", function() {
+    if (token && rating && badTa.value.trim()) {
+      api({ token: token, rating: rating, feedback: badTa.value.trim(), partial: true }).catch(function() {});
+    }
+  });
   var subBad = document.getElementById("submitBad");
   if (subBad) subBad.addEventListener("click", function() {
     subBad.disabled = true; subBad.textContent = "Sending...";
+    document.getElementById("errorBad").style.display = "none";
     fullSubmit().then(function(d) {
       if (d.success) {
-        document.getElementById("tipCard").style.display = "none";
-        document.getElementById("thanksSub").textContent = "Thank you for being honest with us. The owner will reach out personally.";
-        show("step4");
+        var how = { call: "call you", text: "text you", email: "email you" }[badDetails().contact_method];
+        document.getElementById("badCloseSub").textContent = how
+          ? "The owner will " + how + " within one business day to make it right."
+          : "The owner will reach out within one business day to make it right.";
+        show("step3bad");
       } else {
         var e = document.getElementById("errorBad");
         e.textContent = "Something went wrong — please try again."; e.style.display = "block";
