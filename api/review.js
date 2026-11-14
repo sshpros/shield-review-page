@@ -8,7 +8,7 @@
 // their text, and lands them in Google's review box in one tap. The tip
 // moved to the thank-you screen, after the Google step.
 export default async function handler(req, res) {
-  const { token, tech, customer, google, photo, job_id } = req.query;
+  const { token, tech, customer, google, photo, job_id, notip } = req.query;
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
@@ -42,6 +42,9 @@ export default async function handler(req, res) {
   const googleUrl = reviewData?.google_review_url || google || "";
   const alreadyReviewed = reviewData?.review_completed || false;
   const priorTip = Number(reviewData?.tip_amount || 0);
+  // Office-sent requests skip the tip ask (Kyle 2026-11-13): the row says so,
+  // or notip=1 for the app's Preview (no row yet).
+  const tipsOn = reviewData?.tip_enabled === false || notip === "1" ? false : true;
   const priorRating = Number(reviewData?.review_rating || 0);
   const priorFeedback = reviewData?.review_feedback || "";
   const googleDone = reviewData?.google_review_confirmed || false;
@@ -239,7 +242,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
         ? `Didn't get to finish? Pick up where you left off &mdash; already posted? You're all set.`
         : `Your Google review earns ${techFirst} a <strong>$20 bonus</strong> from us.`}</div>` : ``}
     </div>
-    ${priorTip > 0 ? `` : `
+    ${priorTip > 0 || !tipsOn ? `` : `
     <div class="card" id="tipCard">
       <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst}?</div>
       <div class="greeting" style="text-align:center; margin-top:0;">Tips are extra &mdash; 100% goes to your technician.</div>
@@ -338,7 +341,7 @@ textarea:focus { outline:none; border-color:rgba(59,130,246,0.5); }
       <div class="success-sub" id="thanksSub">Your review means a lot to our small team.</div>
       ${googleUrl ? `<button class="ghost-btn" id="googleAgainBtn" style="display:none;">Didn't finish on Google? Open it again</button>` : ``}
     </div>
-    <div class="card" id="tipCard">
+    <div class="card" id="tipCard"${tipsOn ? "" : ' style="display:none;"'}>
       <div class="section-title" style="text-align:center;">&#10084;&#65039; Want to tip ${techFirst} on top?</div>
       <div class="greeting" style="text-align:center; margin-top:0;">We're paying ${techFirst} a $20 bonus for your Google review.<br>Tips are extra &mdash; 100% goes to your technician.</div>
       <div class="tip-grid" id="tipGrid">
